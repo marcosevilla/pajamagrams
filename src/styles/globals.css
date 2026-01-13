@@ -1,0 +1,93 @@
+/* Global styles for Pajamagrams */
+/* Tokens from Figma: Daily Design (ye7XiHyMbTmwBDnO1K9lpQ) */
+
+:root {
+  /* Colors */
+  --color-yellow: #F8BD04;
+  --color-yellow-light: rgba(248, 189, 4, 0.1);
+
+  --color-bg-landing: #F8BD04;
+  --color-bg-puzzle: #F5EFDC;
+  --color-bg-success: #F8BD04;
+  --color-bg-error: #F5EFDC;
+
+  --color-tile-fill: #E3D3C4;
+  --color-tile-border: #DEBB96;
+
+  --color-text-primary: #000000;
+  --color-text-secondary: #7B573D;
+  --color-text-dark: #403100;
+
+  --color-slot-border: #B2B2B2;
+  --color-slot-hover-fill: #DCD6C3;
+  --color-slot-hover-border: #7A7A7A;
+
+  --color-button-success: #7B573D;
+  --color-button-error: #FF0000;
+
+  /* Shadows */
+  --shadow-tile: 0px 2px 6px 2px rgba(0, 0, 0, 0.15), 0px 1px 2px 0px rgba(0, 0, 0, 0.3);
+  --shadow-tile-dragging: 0px 8px 16px 4px rgba(0, 0, 0, 0.2), 0px 4px 8px 0px rgba(0, 0, 0, 0.3);
+
+  /* Spacing */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-xxl: 48px;
+
+  /* Border radius */
+  --radius-tile: 4px;
+  --radius-slot: 4px;
+  --radius-button: 8px;
+
+  /* Dimensions */
+  --tile-size: 53px;
+  --slot-size: 53px;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: Arial, sans-serif;
+  background-color: var(--color-bg-puzzle);
+  color: var(--color-text-primary);
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+#root {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.app {
+  width: 100%;
+  height: 100%;
+  max-width: 430px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Prevent pull-to-refresh on mobile */
+body {
+  overscroll-behavior-y: contain;
+}

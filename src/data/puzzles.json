@@ -1,0 +1,13 @@
+{
+  "version": "1.0.0",
+  "title": "Pajamagrams",
+  "puzzles": [
+    {
+      "id": "puzzle-001",
+      "clue": "An addictive powdery substance derived from a plant. Side effects include increased alertness and an elevated heart rate.",
+      "answer": "MATCHA",
+      "tiles": ["M", "A", "T", "C", "H", "A"]
+    }
+  ],
+  "finalMessage": "You did it! More puzzles coming soon..."
+}
