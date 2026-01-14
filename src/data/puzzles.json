@@ -6,7 +6,68 @@
       "id": "puzzle-001",
       "clue": "An addictive powdery substance derived from a plant. Side effects include increased alertness and an elevated heart rate.",
       "answer": "MATCHA",
-      "tiles": ["M", "A", "T", "C", "H", "A"]
+      "tiles": ["M", "A", "T", "C", "H", "A"],
+      "layout": {
+        "clueMarginTop": 200,
+        "slotMarginTop": 60
+      }
+    },
+    {
+      "id": "puzzle-002",
+      "clue": "Glow in the dark",
+      "answer": "SMISKIS",
+      "tiles": ["S", "M", "I", "S", "K", "I", "S"],
+      "layout": {
+        "clueMarginTop": 177,
+        "slotMarginTop": 80,
+        "orientation": "vertical"
+      }
+    },
+    {
+      "id": "puzzle-003",
+      "clue": "We can do ______!",
+      "answer": "HARDTHINGS",
+      "tiles": ["H", "A", "R", "D", "T", "H", "I", "N", "G", "S"],
+      "layout": {
+        "clueMarginTop": 63,
+        "slotMarginTop": 77,
+        "orientation": "vertical",
+        "buttonSize": {
+          "width": 130,
+          "height": 73
+        }
+      }
+    },
+    {
+      "id": "puzzle-004",
+      "clue": "Your almost daily stroll.",
+      "answer": "SUNSETGYM",
+      "tiles": ["S", "U", "N", "S", "E", "T", "G", "Y", "M"],
+      "layout": {
+        "clueMarginTop": 352,
+        "slotMarginTop": 91,
+        "orientation": "vertical"
+      }
+    },
+    {
+      "id": "puzzle-005",
+      "clue": "A place in between France and Spain",
+      "answer": "BASQUE",
+      "tiles": ["B", "A", "S", "Q", "U", "E"],
+      "layout": {
+        "clueMarginTop": 339,
+        "slotMarginTop": 104
+      }
+    },
+    {
+      "id": "puzzle-006",
+      "clue": "We come to this place for magic",
+      "answer": "REGAL",
+      "tiles": ["R", "E", "G", "A", "L"],
+      "layout": {
+        "clueMarginTop": 339,
+        "slotMarginTop": 104
+      }
     }
   ],
   "finalMessage": "You did it! More puzzles coming soon..."

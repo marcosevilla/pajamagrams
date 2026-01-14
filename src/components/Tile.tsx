@@ -6,7 +6,6 @@ import { colors, dimensions, borderRadius, shadows, typography } from '@/styles/
 interface TileProps {
   id: string
   letter: string
-  initialPosition?: { x: number; y: number }
   rotation?: number
   inSlot?: number | null
 }
@@ -27,8 +26,21 @@ function findSlotAtPoint(x: number, y: number): number | null {
   return null
 }
 
+// Helper to clamp position within viewport bounds with padding
+function clampPosition(x: number, y: number, tileWidth: number, tileHeight: number): { x: number; y: number } {
+  const padding = 10 // Keep tiles at least 10px from edge
+  const minX = padding
+  const minY = padding
+  const maxX = window.innerWidth - tileWidth - padding
+  const maxY = window.innerHeight - tileHeight - padding
+  return {
+    x: Math.max(minX, Math.min(x, maxX)),
+    y: Math.max(minY, Math.min(y, maxY)),
+  }
+}
+
 export default function Tile({ id, letter, rotation = 0, inSlot }: TileProps) {
-  const { placeTileInSlot, returnTileToTray, setHoveredSlot, puzzleState } = useGameStore()
+  const { placeTileInSlot, returnTileToTray, updateTilePosition, setHoveredSlot, puzzleState } = useGameStore()
   const tileRef = useRef<HTMLDivElement>(null)
   const lastHoveredSlotRef = useRef<number | null>(null)
   const [isDragging, setIsDragging] = useState(false)
@@ -83,11 +95,25 @@ export default function Tile({ id, letter, rotation = 0, inSlot }: TileProps) {
     setHoveredSlot(null)
 
     const targetSlotIndex = findSlotAtPoint(pointerX, pointerY)
+    const tileWidth = dimensions.tile.width
+    const tileHeight = dimensions.tile.height
 
     if (targetSlotIndex !== null) {
       placeTileInSlot(id, targetSlotIndex)
-    } else if (inSlot !== null && inSlot !== undefined) {
-      returnTileToTray(id)
+    } else {
+      // Use pointer position - center tile on where finger/cursor was released
+      const newPosition = clampPosition(
+        pointerX - tileWidth / 2,
+        pointerY - tileHeight / 2,
+        tileWidth,
+        tileHeight
+      )
+
+      if (inSlot !== null && inSlot !== undefined) {
+        returnTileToTray(id, newPosition)
+      } else {
+        updateTilePosition(id, newPosition)
+      }
     }
   }
 
@@ -117,7 +143,6 @@ export default function Tile({ id, letter, rotation = 0, inSlot }: TileProps) {
       animate={{
         rotate: isDragging ? 0 : currentRotation,
         scale: isDragging ? 1.1 : 1,
-        zIndex: isDragging ? 100 : 1,
       }}
       transition={{
         rotate: { type: 'spring', stiffness: 300, damping: 25 },
@@ -127,6 +152,8 @@ export default function Tile({ id, letter, rotation = 0, inSlot }: TileProps) {
         boxShadow: shadows.tile.dragging,
       }}
       style={{
+        position: 'relative',
+        zIndex: isDragging ? 9999 : 10,
         width: dimensions.tile.width,
         height: dimensions.tile.height,
         backgroundColor: colors.tile.fill,

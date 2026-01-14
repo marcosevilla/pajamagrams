@@ -8,7 +8,7 @@ import ScatteredTiles from '@/components/ScatteredTiles'
 import ActionButton from '@/components/ActionButton'
 
 export default function PuzzleScreen() {
-  const { puzzleState, getCurrentPuzzle, nextLevel, resetPuzzle } = useGameStore()
+  const { puzzleState, getCurrentPuzzle, completePuzzle, resetPuzzle } = useGameStore()
   const puzzle = getCurrentPuzzle()
 
   const backgroundColor = useMemo(() => {
@@ -42,10 +42,15 @@ export default function PuzzleScreen() {
       <ClueText
         text={puzzle.clue}
         darkMode={puzzleState === 'success' || puzzleState === 'error'}
+        marginTop={puzzle.layout?.clueMarginTop}
       />
 
       {/* Slot row */}
-      <SlotRow answerLength={puzzle.answer.length} />
+      <SlotRow
+        answerLength={puzzle.answer.length}
+        marginTop={puzzle.layout?.slotMarginTop}
+        orientation={puzzle.layout?.orientation as 'horizontal' | 'vertical' | undefined}
+      />
 
       {/* Scattered tiles (hidden when success/error) */}
       <AnimatePresence>
@@ -57,10 +62,18 @@ export default function PuzzleScreen() {
       {/* Action buttons */}
       <AnimatePresence>
         {puzzleState === 'success' && (
-          <ActionButton type="success" onClick={nextLevel} />
+          <ActionButton
+            type="success"
+            onClick={completePuzzle}
+            buttonSize={puzzle.layout?.buttonSize}
+          />
         )}
         {puzzleState === 'error' && (
-          <ActionButton type="error" onClick={resetPuzzle} />
+          <ActionButton
+            type="error"
+            onClick={resetPuzzle}
+            buttonSize={puzzle.layout?.buttonSize}
+          />
         )}
       </AnimatePresence>
     </motion.div>

@@ -36,6 +36,8 @@ const Slot = forwardRef<HTMLDivElement, SlotProps>(
           )`,
           boxSizing: 'border-box',
           flexShrink: 0,
+          position: 'relative',
+          zIndex: 0,
         }}
       />
     )

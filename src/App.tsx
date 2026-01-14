@@ -1,7 +1,9 @@
 import { useRef, useEffect } from 'react'
 import { useGameStore } from './store/gameStore'
 import LandingScreen from './screens/LandingScreen'
+import BananaScreen from './screens/BananaScreen'
 import PuzzleScreen from './screens/PuzzleScreen'
+import FinaleScreen from './screens/FinaleScreen'
 
 function App() {
   const { currentScreen } = useGameStore()
@@ -34,10 +36,11 @@ function App() {
   }
 
   return (
-    <div className="app">
+    <div className="app" style={{ position: 'relative', overflow: 'hidden', width: '100%', height: '100%' }}>
       {currentScreen === 'landing' && <LandingScreen onStart={handleStartGame} />}
+      {currentScreen === 'bananas' && <BananaScreen />}
       {currentScreen === 'puzzle' && <PuzzleScreen />}
-      {currentScreen === 'finale' && <div>Finale coming soon!</div>}
+      {currentScreen === 'finale' && <FinaleScreen />}
     </div>
   )
 }

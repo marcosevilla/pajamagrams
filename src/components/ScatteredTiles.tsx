@@ -20,30 +20,16 @@ export default function ScatteredTiles() {
         width: '100%',
         height: '100%',
         pointerEvents: 'none',
+        zIndex: 100,
       }}
     >
       {trayTiles.map((tile) => (
-        <motion.div
-          key={tile.id}
-          initial={{
-            x: tile.position.x,
-            y: tile.position.y,
-            scale: 0,
-            opacity: 0,
-          }}
-          animate={{
-            x: tile.position.x,
-            y: tile.position.y,
-            scale: 1,
-            opacity: 1,
-          }}
-          transition={{
-            type: 'spring',
-            stiffness: 300,
-            damping: 25,
-          }}
+        <div
+          key={`${tile.id}-${tile.position.x}-${tile.position.y}`}
           style={{
             position: 'absolute',
+            left: tile.position.x,
+            top: tile.position.y,
             pointerEvents: 'auto',
           }}
         >
@@ -52,7 +38,7 @@ export default function ScatteredTiles() {
             letter={tile.letter}
             rotation={tile.rotation}
           />
-        </motion.div>
+        </div>
       ))}
     </motion.div>
   )

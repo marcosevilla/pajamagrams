@@ -6,9 +6,11 @@ import { spacing } from '@/styles/tokens'
 
 interface SlotRowProps {
   answerLength: number
+  marginTop?: number
+  orientation?: 'horizontal' | 'vertical'
 }
 
-export default function SlotRow({ answerLength }: SlotRowProps) {
+export default function SlotRow({ answerLength, marginTop = 60, orientation = 'horizontal' }: SlotRowProps) {
   const { slots, tiles, hoveredSlotIndex } = useGameStore()
   const slotRefs = useRef<(HTMLDivElement | null)[]>([])
 
@@ -20,11 +22,12 @@ export default function SlotRow({ answerLength }: SlotRowProps) {
     <div
       style={{
         display: 'flex',
-        flexDirection: 'row',
+        flexDirection: orientation === 'vertical' ? 'column' : 'row',
         alignItems: 'center',
         gap: spacing.slotGap,
-        marginTop: 'min(60px, 6vh)',
+        marginTop: `min(${marginTop}px, 10vh)`,
         position: 'relative',
+        zIndex: 1,
       }}
     >
       {Array.from({ length: answerLength }).map((_, index) => {
@@ -38,7 +41,7 @@ export default function SlotRow({ answerLength }: SlotRowProps) {
             data-slot-index={index}
             style={{ position: 'relative' }}
           >
-            {/* Slot is always visible */}
+            {/* Slot is always visible - positioned behind tile */}
             <Slot ref={setSlotRef(index)} isHovered={isHovered} />
 
             {/* Tile sits on top of slot when placed */}

@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import puzzles from '@/data/puzzles.json'
 
 export type PuzzleState = 'initial' | 'playing' | 'error' | 'success'
-export type Screen = 'landing' | 'puzzle' | 'finale'
+export type Screen = 'landing' | 'bananas' | 'puzzle' | 'finale'
 
 export interface TileData {
   id: string
@@ -16,6 +16,8 @@ interface GameStore {
   // Navigation
   currentScreen: Screen
   currentLevelIndex: number
+  completedPuzzles: number // 0-6, tracks how many puzzles are complete
+  justCompletedPuzzle: boolean // true when returning from a completed puzzle (for fade animation)
 
   // Puzzle state
   puzzleState: PuzzleState
@@ -25,13 +27,16 @@ interface GameStore {
 
   // Actions
   startGame: () => void
+  goToPuzzle: (levelIndex: number) => void
   initializePuzzle: (levelIndex: number) => void
   placeTileInSlot: (tileId: string, slotIndex: number) => void
-  returnTileToTray: (tileId: string) => void
+  returnTileToTray: (tileId: string, dropPosition?: { x: number; y: number }) => void
+  updateTilePosition: (tileId: string, position: { x: number; y: number }) => void
   setHoveredSlot: (index: number | null) => void
   validateAnswer: () => boolean
-  nextLevel: () => void
+  completePuzzle: () => void // Called when PEEL is clicked after success
   resetPuzzle: () => void
+  clearJustCompleted: () => void // Called after fade animation completes
 
   // Helpers
   getCurrentPuzzle: () => typeof puzzles.puzzles[0] | null
@@ -77,6 +82,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
   // Initial state
   currentScreen: 'landing',
   currentLevelIndex: 0,
+  completedPuzzles: 0,
+  justCompletedPuzzle: false,
   puzzleState: 'initial',
   tiles: [],
   slots: [],
@@ -84,8 +91,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   // Actions
   startGame: () => {
+    set({ currentScreen: 'bananas' })
+  },
+
+  goToPuzzle: (levelIndex: number) => {
     set({ currentScreen: 'puzzle' })
-    get().initializePuzzle(0)
+    get().initializePuzzle(levelIndex)
   },
 
   initializePuzzle: (levelIndex: number) => {
@@ -115,6 +126,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
     // Check if slot already has a tile
     const existingTileId = slots[slotIndex]
 
+    // Check if the tile being placed is already in a different slot
+    const movingTile = tiles.find((t) => t.id === tileId)
+    const previousSlotIndex = movingTile?.inSlot
+
     // Update tiles
     const newTiles = tiles.map((tile) => {
       if (tile.id === tileId) {
@@ -138,6 +153,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
     // Update slots
     const newSlots = [...slots]
+
+    // Clear the previous slot if tile was already in one
+    if (previousSlotIndex !== null && previousSlotIndex !== undefined) {
+      newSlots[previousSlotIndex] = null
+    }
+
     newSlots[slotIndex] = tileId
 
     // Check if all slots are filled
@@ -157,7 +178,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     }
   },
 
-  returnTileToTray: (tileId: string) => {
+  returnTileToTray: (tileId: string, dropPosition?: { x: number; y: number }) => {
     const { tiles, slots } = get()
 
     const tile = tiles.find((t) => t.id === tileId)
@@ -170,11 +191,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
         ? {
             ...t,
             inSlot: null,
-            position: {
+            position: dropPosition || {
               x: 80 + Math.random() * 250,
               y: 420 + Math.random() * 180,
             },
-            rotation: (Math.random() - 0.5) * 50,
+            rotation: (Math.random() - 0.5) * 30,
           }
         : t
     )
@@ -187,6 +208,22 @@ export const useGameStore = create<GameStore>((set, get) => ({
       slots: newSlots,
       puzzleState: 'playing',
     })
+  },
+
+  updateTilePosition: (tileId: string, position: { x: number; y: number }) => {
+    const { tiles } = get()
+
+    const newTiles = tiles.map((t) =>
+      t.id === tileId
+        ? {
+            ...t,
+            position,
+            rotation: (Math.random() - 0.5) * 30,
+          }
+        : t
+    )
+
+    set({ tiles: newTiles })
   },
 
   setHoveredSlot: (index: number | null) => {
@@ -213,20 +250,25 @@ export const useGameStore = create<GameStore>((set, get) => ({
     return isCorrect
   },
 
-  nextLevel: () => {
-    const { currentLevelIndex } = get()
-    const nextIndex = currentLevelIndex + 1
+  completePuzzle: () => {
+    const { completedPuzzles } = get()
+    const newCompleted = completedPuzzles + 1
+    const isFinale = newCompleted >= puzzles.puzzles.length
 
-    if (nextIndex >= puzzles.puzzles.length) {
-      set({ currentScreen: 'finale' })
-    } else {
-      get().initializePuzzle(nextIndex)
-    }
+    set({
+      completedPuzzles: newCompleted,
+      justCompletedPuzzle: true,
+      currentScreen: isFinale ? 'finale' : 'bananas',
+    })
   },
 
   resetPuzzle: () => {
     const { currentLevelIndex } = get()
     get().initializePuzzle(currentLevelIndex)
+  },
+
+  clearJustCompleted: () => {
+    set({ justCompletedPuzzle: false })
   },
 
   getCurrentPuzzle: () => {

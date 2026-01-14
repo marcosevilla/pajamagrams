@@ -3,9 +3,10 @@ import { colors, typography } from '@/styles/tokens'
 interface ClueTextProps {
   text: string
   darkMode?: boolean
+  marginTop?: number
 }
 
-export default function ClueText({ text, darkMode = false }: ClueTextProps) {
+export default function ClueText({ text, darkMode = false, marginTop = 200 }: ClueTextProps) {
   return (
     <p
       style={{
@@ -18,7 +19,7 @@ export default function ClueText({ text, darkMode = false }: ClueTextProps) {
         color: darkMode ? colors.text.dark : colors.text.secondary,
         width: 343,
         maxWidth: '90vw',
-        marginTop: 'min(200px, 20vh)',
+        marginTop: `min(${marginTop}px, 20vh)`,
         padding: '0 20px',
         transition: 'color 0.3s ease',
       }}

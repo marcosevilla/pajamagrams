@@ -16,6 +16,7 @@ A mobile-first, interactive puzzle gift experience inspired by Bananagrams. Buil
 8. [UI Style Guide](#8-ui-style-guide-from-figma)
 9. [Milestones / Build Plan](#9-milestones--build-plan)
 10. [Open Questions / Configurable Knobs](#10-open-questions--configurable-knobs)
+11. [Feature: Banana/Gift Reveal System](#11-feature-bananagift-reveal-system)
 
 ---
 
@@ -98,12 +99,24 @@ Rectangle 1 (Slot)       →  <Slot />
 
 ```
 ┌─────────────┐     ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-│   Landing   │ ──▶ │   Puzzle    │ ──▶ │   Success   │ ──▶ │  Next Level │
-│   Screen    │     │   Level N   │     │    State    │     │  or Finale  │
+│   Landing   │ ──▶ │   Bananas   │ ──▶ │   Puzzle    │ ──▶ │   Success   │
+│   Screen    │     │   Screen    │     │   Level N   │     │    State    │
 └─────────────┘     └─────────────┘     └─────────────┘     └─────────────┘
       │                   │                   │                    │
-   Tap to             Drag tiles         Auto-advance          Repeat or
-    Start             to solve           after delay            End
+   Tap to             Tap banana          Drag tiles          Tap "PEEL!"
+    Start             to start            to solve
+                          │                                       │
+                          ▼                                       ▼
+                    ┌─────────────┐                         ┌─────────────┐
+                    │    Fade     │◀────────────────────────│   Return    │
+                    │ Banana→Gift │                         │ to Bananas  │
+                    └─────────────┘                         └─────────────┘
+                          │
+                          ▼ (after all 6)
+                    ┌─────────────┐
+                    │   Finale    │
+                    │   Screen    │
+                    └─────────────┘
 ```
 
 ### Screen States (mapped to Figma frames)
@@ -111,23 +124,29 @@ Rectangle 1 (Slot)       →  <Slot />
 | State | Description | Figma Reference |
 |-------|-------------|-----------------|
 | `landing` | Title screen with logo, tap to begin | Node `2161:408` |
+| `bananas` | 6 banana images, tap next to solve puzzle | Node `3-1329` |
 | `puzzle.initial` | Clue visible, tiles scattered below, slots empty | Node `2161:410` |
 | `puzzle.dragging` | Tile elevated, slot highlights on hover | Node `2169:507` |
 | `puzzle.partial` | Some slots filled, puzzle incomplete | (Derived state) |
 | `puzzle.complete` | All slots filled, pending validation | (Derived state) |
 | `puzzle.error` | Wrong answer, "TRY AGAIN!" button, cream background | Node `2169:602` |
 | `puzzle.success` | Correct answer, yellow background, "PEEL!" button | Node `2169:538` |
-| `finale` | All puzzles complete, celebratory end | (TBD frame) |
+| `finale` | All 6 gifts revealed, birthday message, confetti | Custom |
 
 ### Navigation Logic
 
 ```typescript
-type GameState =
-  | { screen: 'landing' }
-  | { screen: 'puzzle'; levelIndex: number; puzzleState: PuzzleState }
-  | { screen: 'finale' };
+type Screen = 'landing' | 'bananas' | 'puzzle' | 'finale';
 
-type PuzzleState = 'initial' | 'dragging' | 'partial' | 'complete' | 'success' | 'retry';
+type PuzzleState = 'initial' | 'success' | 'error';
+
+interface GameState {
+  currentScreen: Screen;
+  currentLevelIndex: number;
+  completedPuzzles: number;      // 0-6 tracking how many puzzles solved
+  justCompletedPuzzle: boolean;  // Flag for fade animation trigger
+  puzzleState: PuzzleState;
+}
 ```
 
 ---
@@ -242,17 +261,56 @@ interface Puzzle {
 }
 ```
 
+### All 6 Puzzles
+
+| # | Answer | Clue | Orientation |
+|---|--------|------|-------------|
+| 1 | **MATCHA** | "An addictive powdery substance derived from a plant. Side effects include increased alertness and an elevated heart rate." | horizontal |
+| 2 | **SMISKIS** | "Glow in the dark" | vertical |
+| 3 | **HARDTHINGS** | "We can do ______!" | vertical |
+| 4 | **SUNSETGYM** | "Your almost daily stroll." | vertical |
+| 5 | **BASQUE** | "A place in between France and Spain" | horizontal |
+| 6 | **REGAL** | "We come to this place for magic" | horizontal |
+
 ### Example Puzzle Data
 
 ```json
 {
-  "id": "puzzle-001",
-  "clue": "An addictive powdery substance derived from a plant. Side effects include increased alertness and an elevated heart rate.",
-  "answer": "MATCHA",
-  "tiles": ["M", "A", "T", "C", "H", "A"],
-  "hint": "It's green and Japanese",
-  "successMessage": "You know me too well! ☕",
-  "difficulty": "easy"
+  "puzzles": [
+    {
+      "id": "puzzle-001",
+      "clue": "An addictive powdery substance derived from a plant. Side effects include increased alertness and an elevated heart rate.",
+      "answer": "MATCHA"
+    },
+    {
+      "id": "puzzle-002",
+      "clue": "Glow in the dark",
+      "answer": "SMISKIS",
+      "layout": { "orientation": "vertical" }
+    },
+    {
+      "id": "puzzle-003",
+      "clue": "We can do ______!",
+      "answer": "HARDTHINGS",
+      "layout": { "orientation": "vertical" }
+    },
+    {
+      "id": "puzzle-004",
+      "clue": "Your almost daily stroll.",
+      "answer": "SUNSETGYM",
+      "layout": { "orientation": "vertical" }
+    },
+    {
+      "id": "puzzle-005",
+      "clue": "A place in between France and Spain",
+      "answer": "BASQUE"
+    },
+    {
+      "id": "puzzle-006",
+      "clue": "We come to this place for magic",
+      "answer": "REGAL"
+    }
+  ]
 }
 ```
 
@@ -341,21 +399,25 @@ Using **Framer Motion's `drag` prop** rather than a dedicated DnD library:
 ```typescript
 interface GameStore {
   // Navigation
-  currentScreen: 'landing' | 'puzzle' | 'finale';
+  currentScreen: 'landing' | 'bananas' | 'puzzle' | 'finale';
   currentLevelIndex: number;
+  completedPuzzles: number;        // 0-6 tracking progress
+  justCompletedPuzzle: boolean;    // Triggers fade animation on BananaScreen
 
   // Puzzle state
-  slots: (string | null)[];      // Current slot contents
-  trayTiles: TileState[];        // Tiles in tray with positions
-  dragState: DragState | null;   // Active drag info
+  puzzleState: 'initial' | 'success' | 'error';
+  slots: (string | null)[];        // Current slot contents (tile IDs)
+  tiles: TileState[];              // All tiles with positions
 
   // Actions
   startGame: () => void;
-  placeTile: (tileId: string, slotIndex: number) => void;
-  returnTileToTray: (tileId: string) => void;
-  validateAnswer: () => boolean;
-  nextLevel: () => void;
-  resetLevel: () => void;
+  goToPuzzle: (levelIndex: number) => void;
+  placeTileInSlot: (tileId: string, slotIndex: number) => void;
+  removeTileFromSlot: (slotIndex: number, position: Position) => void;
+  updateTilePosition: (tileId: string, position: Position) => void;
+  completePuzzle: () => void;      // Mark puzzle done, return to bananas
+  resetPuzzle: () => void;         // Reset tiles for retry
+  clearJustCompleted: () => void;  // Clear animation flag
 }
 ```
 
@@ -392,55 +454,63 @@ Save on:
 ├── package.json
 ├── vite.config.ts
 ├── tsconfig.json
-├── tailwind.config.ts
 ├── index.html
 │
 ├── /public
 │   └── /assets
 │       ├── logo.svg              # Pajamagrams logo from Figma
-│       └── /tiles                # Tile texture assets if needed
+│       ├── Banana Pancakes.mp3   # Background music
+│       │
+│       ├── /bananas              # Banana images (6 PNG files)
+│       │   ├── banana1.png
+│       │   ├── banana2.png
+│       │   ├── banana3.png
+│       │   ├── banana4.png
+│       │   ├── banana5.png
+│       │   └── banana6.png
+│       │
+│       └── /gifts                # Gift images revealed after puzzles
+│           ├── gift1.png
+│           ├── gift2.png
+│           ├── gift3.png
+│           ├── gift4.png
+│           ├── gift5.png
+│           └── gift6.png
 │
 ├── /src
 │   ├── main.tsx                  # Entry point
-│   ├── App.tsx                   # Root component with screen routing
+│   ├── App.tsx                   # Root component with slide transitions
 │   │
-│   ├── /components               # 1:1 mapping with Figma components
-│   │   ├── Logo.tsx              # Group 5 from Figma
-│   │   ├── Title.tsx             # PAJAMAGRAMS text treatment
-│   │   ├── Tile.tsx              # Letter tile (Group 6 pattern)
-│   │   ├── Slot.tsx              # Empty placeholder slot
-│   │   ├── SlotRow.tsx           # Row of slots for answer
+│   ├── /components               # UI components
+│   │   ├── Logo.tsx              # PAJAMAGRAMS logo from Figma
+│   │   ├── Tile.tsx              # Draggable letter tile
+│   │   ├── Slot.tsx              # Drop target slot
+│   │   ├── SlotRow.tsx           # Row/column of slots (supports vertical)
 │   │   ├── ScatteredTiles.tsx    # Scattered draggable tiles area
 │   │   ├── ClueText.tsx          # Clue/riddle display
-│   │   ├── ActionButton.tsx      # "PEEL!" and "TRY AGAIN!" buttons
-│   │   └── Confetti.tsx          # Celebration particles (optional)
+│   │   └── ActionButton.tsx      # "PEEL!" and "TRY AGAIN!" buttons
 │   │
-│   ├── /screens                  # 1:1 mapping with Figma frames
-│   │   ├── LandingScreen.tsx     # Node 2161:408
-│   │   ├── PuzzleScreen.tsx      # Node 2161:410
-│   │   └── FinaleScreen.tsx      # End celebration
+│   ├── /screens
+│   │   ├── LandingScreen.tsx     # Title screen, tap to start
+│   │   ├── BananaScreen.tsx      # 6 bananas/gifts with fade animation
+│   │   ├── PuzzleScreen.tsx      # Clue + slots + tiles puzzle
+│   │   └── FinaleScreen.tsx      # All gifts + confetti + birthday msg
 │   │
 │   ├── /data
-│   │   └── puzzles.json          # Puzzle definitions
+│   │   └── puzzles.json          # All 6 puzzle definitions
 │   │
 │   ├── /styles
 │   │   ├── tokens.ts             # Design tokens from Figma
-│   │   └── globals.css           # Base styles + Tailwind imports
-│   │
-│   ├── /motion
-│   │   ├── variants.ts           # Framer Motion animation presets
-│   │   └── gestures.ts           # Drag gesture configurations
+│   │   └── globals.css           # Base styles
 │   │
 │   ├── /store
 │   │   └── gameStore.ts          # Zustand game state
 │   │
 │   └── /utils
-│       ├── validation.ts         # Answer checking logic
-│       ├── haptics.ts            # Haptic feedback utilities
-│       └── storage.ts            # LocalStorage helpers
+│       └── tileLayout.ts         # Tile scatter layout generation
 │
 └── /figma
-    └── tokens.json               # Raw Figma token export (for reference)
+    └── tokens.json               # Raw Figma token export
 ```
 
 ---
@@ -618,59 +688,64 @@ export const shadows = {
 
 ## 9. Milestones / Build Plan
 
-### Phase 1: Foundation
-- [ ] Initialize Vite + React + TypeScript project
-- [ ] Configure Tailwind with Figma tokens
-- [ ] Set up MCP Figma integration
-- [ ] Export assets from Figma (logo, slot SVGs)
-- [ ] Create token file from Figma styles
+### Phase 1: Foundation ✅
+- [x] Initialize Vite + React + TypeScript project
+- [x] Configure with Figma tokens
+- [x] Set up MCP Figma integration
+- [x] Export assets from Figma (logo, slot SVGs)
+- [x] Create token file from Figma styles
 
-### Phase 2: Static UI
-- [ ] Build `LandingScreen` from Figma frame
-- [ ] Build `PuzzleScreen` layout (static)
-- [ ] Build `Tile` component with correct styling
-- [ ] Build `Slot` component with empty state
-- [ ] Build `SlotRow` component
-- [ ] Build `ClueText` component
-- [ ] Build `TileTray` layout
+### Phase 2: Static UI ✅
+- [x] Build `LandingScreen` from Figma frame
+- [x] Build `PuzzleScreen` layout
+- [x] Build `Tile` component with correct styling
+- [x] Build `Slot` component with empty/hover states
+- [x] Build `SlotRow` component (horizontal + vertical)
+- [x] Build `ClueText` component
+- [x] Build `ScatteredTiles` area
 
-### Phase 3: Data Layer
-- [ ] Define puzzle JSON schema
-- [ ] Create sample puzzles (3-5 for testing)
-- [ ] Set up Zustand store
-- [ ] Implement level progression logic
-- [ ] Add LocalStorage persistence
+### Phase 3: Data Layer ✅
+- [x] Define puzzle JSON schema
+- [x] Create all 6 puzzles with clues
+- [x] Set up Zustand store
+- [x] Implement level progression logic
 
-### Phase 4: Interactions
-- [ ] Implement tile drag with Framer Motion
-- [ ] Add slot hover detection
-- [ ] Implement drop-to-slot logic
-- [ ] Add swap behavior for occupied slots
-- [ ] Add return-to-tray animation
-- [ ] Implement reset functionality
+### Phase 4: Interactions ✅
+- [x] Implement tile drag with Framer Motion
+- [x] Add slot hover detection
+- [x] Implement drop-to-slot logic
+- [x] Add swap behavior for occupied slots
+- [x] Fix tile positioning (clamp to screen bounds)
+- [x] Fix z-index layering (tiles always above slots)
 
-### Phase 5: Validation & Feedback
-- [ ] Implement answer validation
-- [ ] Add success state animations
-- [ ] Add error shake animation
-- [ ] Build `SuccessModal` component
-- [ ] Add level transition flow
+### Phase 5: Validation & Feedback ✅
+- [x] Implement answer validation
+- [x] Add success state (yellow background)
+- [x] Add error state (cream background)
+- [x] Build `ActionButton` component ("PEEL!" / "TRY AGAIN!")
+- [x] Add level transition flow
 
-### Phase 6: Polish
-- [ ] Add haptic feedback (iOS)
-- [ ] Tune animation timing/easing
-- [ ] Add optional sound effects
-- [ ] Build `FinaleScreen`
-- [ ] Add confetti/celebration effects
-- [ ] Implement hint system (if enabled)
+### Phase 6: Banana/Gift System ✅
+- [x] Build `BananaScreen` with 6 positioned images
+- [x] Implement banana→gift fade animation on puzzle complete
+- [x] Track completed puzzles (0-6)
+- [x] Only allow tapping next available banana
+- [x] Dim incomplete bananas (60% opacity)
+- [x] Build `FinaleScreen` with all gifts revealed
+- [x] Add confetti celebration animation
+- [x] Add birthday message ("Happy 29th Birthday!!! Love, Marco")
 
-### Phase 7: QA & Deploy
+### Phase 7: Polish ✅
+- [x] Add background music (Banana Pancakes)
+- [x] Tune animation timing/easing
+- [x] Add slide transitions between screens
+
+### Phase 8: QA & Deploy
 - [ ] Test on iPhone Safari
 - [ ] Test on Android Chrome
 - [ ] Test various screen sizes
 - [ ] Performance optimization
 - [ ] Deploy to Vercel
-- [ ] Final puzzle content entry
 
 ---
 
@@ -680,45 +755,145 @@ export const shadows = {
 
 | Question | Decision |
 |----------|----------|
-| Number of levels | **6 puzzles** |
+| Number of levels | **6 puzzles** (MATCHA, SMISKIS, HARDTHINGS, SUNSETGYM, BASQUE, REGAL) |
 | Tray layout | **Scattered** (matching Figma) |
 | Success/error states | **Confirmed** (Figma frames provided) |
 | Tile size | **53×53px** (fixed, with slight scale on drag) |
+| Puzzle orientations | **Mixed** - 3 horizontal, 3 vertical |
+| Finale screen | **Gifts + birthday message + confetti** |
+| Background music | **"Banana Pancakes"** by Jack Johnson |
+| Screen transitions | **Slide left/right** based on flow direction |
 
 ### Deferred Decisions
 
 | Question | Options | Default |
 |----------|---------|---------|
-| Hint system | Enabled / Disabled | Disabled |
-| Sound effects | On / Off / Optional | Off |
-| Progress persistence | LocalStorage / None | LocalStorage |
-| Finale screen design | TBD | Need Figma frame |
+| Hint system | Enabled / Disabled | **Disabled** |
+| Sound effects | On / Off / Optional | **Background music only** |
+| Progress persistence | LocalStorage / None | **Not implemented** |
 
-### Content Questions
+### Content - All Complete ✅
 
-- [x] First puzzle: "MATCHA" (clue provided in Figma)
-- [ ] Puzzles 2-6: Clues and answers TBD
-- [ ] Finale screen copy
+- [x] Puzzle 1: "MATCHA" - An addictive powdery substance...
+- [x] Puzzle 2: "SMISKIS" - Glow in the dark
+- [x] Puzzle 3: "HARDTHINGS" - We can do ______!
+- [x] Puzzle 4: "SUNSETGYM" - Your almost daily stroll.
+- [x] Puzzle 5: "BASQUE" - A place in between France and Spain
+- [x] Puzzle 6: "REGAL" - We come to this place for magic
+- [x] Finale screen: "Happy 29th Birthday!!! Love, Marco"
+
+---
+
+## 11. Feature: Banana/Gift Reveal System
+
+### Overview
+
+The game uses a banana/gift reveal mechanic where each solved puzzle "unpeels" a banana to reveal a gift underneath. This creates a visual progression toward the birthday celebration finale.
+
+### BananaScreen
+
+The BananaScreen displays 6 banana images at fixed positions (from Figma design). Each banana corresponds to a puzzle:
+
+```typescript
+const imageSlots = [
+  { id: 1, x: 183, y: 208, width: 197, height: 197 },
+  { id: 2, x: 216, y: 629, width: 186, height: 179 },
+  { id: 3, x: 52, y: 208, width: 134, height: 213 },
+  { id: 4, x: 192, y: 427, width: 196, height: 172 },
+  { id: 5, x: 28, y: 406, width: 200, height: 216 },
+  { id: 6, x: 40, y: 664, width: 130, height: 88 },
+]
+```
+
+**Interaction Rules:**
+- Only the **next unfinished banana** is tappable (100% opacity)
+- Future bananas are dimmed (60% opacity) and non-interactive
+- Completed puzzles show **gift images** instead of bananas
+- Title displays "Unpeel all 6 bananas"
+
+### Fade Animation
+
+When returning from a completed puzzle:
+
+1. `justCompletedPuzzle` flag is set to `true`
+2. BananaScreen detects this flag and triggers fade animation
+3. Animation sequence:
+   - Banana fades out (opacity 1→0, 500ms)
+   - Gift fades in (opacity 0→1, 500ms, 300ms delay)
+4. After animation, flag is cleared via `clearJustCompleted()`
+
+```typescript
+// Fade animation timing
+<motion.img
+  key={`banana-fade-${index}`}
+  initial={{ opacity: 1 }}
+  animate={{ opacity: 0 }}
+  transition={{ duration: 0.5 }}
+/>
+<motion.img
+  key={`gift-fade-${index}`}
+  initial={{ opacity: 0 }}
+  animate={{ opacity: 1 }}
+  transition={{ duration: 0.5, delay: 0.3 }}
+/>
+```
+
+### FinaleScreen
+
+After all 6 puzzles are completed:
+
+- Screen transitions to FinaleScreen
+- All 6 gift images displayed at same positions
+- Birthday message: "Happy 29th Birthday!!! Love, Marco"
+- Confetti animation with 100 pieces falling from top
+- Confetti colors: yellow, red, teal, blue, green, lavender, pink
+
+### Screen Transitions
+
+Screens transition with slide animations using Framer Motion:
+
+```typescript
+const slideVariants = {
+  enter: (direction: number) => ({
+    x: direction > 0 ? '100%' : '-100%',
+    opacity: 1,
+  }),
+  center: { x: 0, opacity: 1 },
+  exit: (direction: number) => ({
+    x: direction < 0 ? '100%' : '-100%',
+    opacity: 1,
+  }),
+}
+```
+
+Direction is determined by comparing screen indices:
+- `landing (0) → bananas (1)`: slide left
+- `bananas (1) → puzzle (2)`: slide left
+- `puzzle (2) → bananas (1)`: slide right (after completing puzzle)
+- `bananas (1) → finale (3)`: slide left (after all 6 complete)
 
 ---
 
 ## Quick Start
 
 ```bash
-# Clone and install
+# Install dependencies
 cd pajamagrams
-npm create vite@latest . -- --template react-ts
 npm install
 
-# Add dependencies
-npm install framer-motion zustand tailwindcss postcss autoprefixer
-
-# Initialize Tailwind
-npx tailwindcss init -p
-
-# Start development
+# Start development server
 npm run dev
+# Opens at http://localhost:5173
+
+# Build for production
+npm run build
 ```
+
+### Key Dependencies
+- **React 19** + TypeScript
+- **Vite** - Fast dev server with HMR
+- **Framer Motion** - Drag/drop and animations
+- **Zustand** - Lightweight state management
 
 ---
 
@@ -739,3 +914,5 @@ mcp__figma__download_figma_images(
 ---
 
 *Document generated with MCP Figma integration. Design tokens extracted from Figma file `Daily Design` (ye7XiHyMbTmwBDnO1K9lpQ).*
+
+*Last updated: Added Banana/Gift reveal system, all 6 puzzles, FinaleScreen with confetti, and screen transition animations.*

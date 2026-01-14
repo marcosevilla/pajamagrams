@@ -4,21 +4,32 @@ import { typography, colors } from '@/styles/tokens'
 interface ActionButtonProps {
   type: 'success' | 'error'
   onClick: () => void
+  buttonSize?: { width: number; height: number }
 }
 
 // Custom easing that creates a stepped/choppy effect
 const steppedEase = [0.3, 0, 0.2, 1] // Quick start, pause, quick end
 
-export default function ActionButton({ type, onClick }: ActionButtonProps) {
+// Default button dimensions
+const DEFAULT_SUCCESS_SIZE = { width: 200, height: 112 }
+const DEFAULT_ERROR_SIZE = { width: 265, height: 112 }
+
+export default function ActionButton({ type, onClick, buttonSize }: ActionButtonProps) {
   const isSuccess = type === 'success'
 
-  // Button dimensions from Figma (at 1x scale)
-  const buttonWidth = isSuccess ? 200 : 265
-  const buttonHeight = 112
+  // Use custom size or default based on type
+  const defaultSize = isSuccess ? DEFAULT_SUCCESS_SIZE : DEFAULT_ERROR_SIZE
+  const { width: buttonWidth, height: buttonHeight } = buttonSize || defaultSize
 
-  // Text positioning from Figma
-  const textLeft = isSuccess ? 46.15 : 30
-  const textTop = 29.37
+  // Calculate scale factor for text sizing (based on width ratio to default)
+  const scaleFactor = buttonWidth / defaultSize.width
+
+  // Text positioning scales with button size
+  const textLeft = (isSuccess ? 46.15 : 30) * scaleFactor
+  const textTop = 29.37 * scaleFactor
+  const textWidth = (isSuccess ? 108 : 207) * scaleFactor
+  const textHeight = 55 * scaleFactor
+  const fontSize = 47.5 * scaleFactor
 
   const buttonImage = isSuccess ? '/assets/button-peel.png' : '/assets/button-try-again.png'
   const buttonText = isSuccess ? 'PEEL!' : 'TRY AGAIN!'
@@ -66,11 +77,11 @@ export default function ActionButton({ type, onClick }: ActionButtonProps) {
           position: 'absolute',
           top: textTop,
           left: textLeft,
-          width: isSuccess ? 108 : 207,
-          height: 55,
+          width: textWidth,
+          height: textHeight,
           fontFamily: typography.button.fontFamily,
           fontWeight: typography.button.fontWeight,
-          fontSize: '47.5px',
+          fontSize: `${fontSize}px`,
           lineHeight: 1.15,
           letterSpacing: '-0.04em',
           color: textColor,
