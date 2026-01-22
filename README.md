@@ -17,6 +17,7 @@ A mobile-first, interactive puzzle gift experience inspired by Bananagrams. Buil
 9. [Milestones / Build Plan](#9-milestones--build-plan)
 10. [Open Questions / Configurable Knobs](#10-open-questions--configurable-knobs)
 11. [Feature: Banana/Gift Reveal System](#11-feature-bananagift-reveal-system)
+12. [Known Issues](#12-known-issues)
 
 ---
 
@@ -792,24 +793,26 @@ The game uses a banana/gift reveal mechanic where each solved puzzle "unpeels" a
 
 ### BananaScreen
 
-The BananaScreen displays 6 banana images at fixed positions (from Figma design). Each banana corresponds to a puzzle:
+The BananaScreen displays 6 banana images in a uniform 2×3 grid layout, ordered left-to-right, top-to-bottom:
 
 ```typescript
+// Uniform 160x160 grid layout
 const imageSlots = [
-  { id: 1, x: 183, y: 208, width: 197, height: 197 },
-  { id: 2, x: 216, y: 629, width: 186, height: 179 },
-  { id: 3, x: 52, y: 208, width: 134, height: 213 },
-  { id: 4, x: 192, y: 427, width: 196, height: 172 },
-  { id: 5, x: 28, y: 406, width: 200, height: 216 },
-  { id: 6, x: 40, y: 664, width: 130, height: 88 },
+  { id: 1, x: 40, y: 200, width: 160, height: 160 },   // top left
+  { id: 2, x: 215, y: 200, width: 160, height: 160 },  // top right
+  { id: 3, x: 40, y: 400, width: 160, height: 160 },   // middle left
+  { id: 4, x: 215, y: 400, width: 160, height: 160 },  // middle right
+  { id: 5, x: 40, y: 600, width: 160, height: 160 },   // bottom left
+  { id: 6, x: 215, y: 600, width: 160, height: 160 },  // bottom right
 ]
 ```
 
 **Interaction Rules:**
 - Only the **next unfinished banana** is tappable (100% opacity)
-- Future bananas are dimmed (60% opacity) and non-interactive
+- Future bananas are dimmed (25% opacity) and non-interactive
 - Completed puzzles show **gift images** instead of bananas
 - Title displays "Unpeel all 6 bananas"
+- Images use `objectFit: 'contain'` to preserve aspect ratios within uniform slots
 
 ### Fade Animation
 
@@ -850,27 +853,20 @@ After all 6 puzzles are completed:
 
 ### Screen Transitions
 
-Screens transition with slide animations using Framer Motion:
+Screens are rendered via simple conditional rendering in `App.tsx`:
 
 ```typescript
-const slideVariants = {
-  enter: (direction: number) => ({
-    x: direction > 0 ? '100%' : '-100%',
-    opacity: 1,
-  }),
-  center: { x: 0, opacity: 1 },
-  exit: (direction: number) => ({
-    x: direction < 0 ? '100%' : '-100%',
-    opacity: 1,
-  }),
-}
+{currentScreen === 'landing' && <LandingScreen />}
+{currentScreen === 'bananas' && <BananaScreen />}
+{currentScreen === 'puzzle' && <PuzzleScreen />}
+{currentScreen === 'finale' && <FinaleScreen />}
 ```
 
-Direction is determined by comparing screen indices:
-- `landing (0) → bananas (1)`: slide left
-- `bananas (1) → puzzle (2)`: slide left
-- `puzzle (2) → bananas (1)`: slide right (after completing puzzle)
-- `bananas (1) → finale (3)`: slide left (after all 6 complete)
+Screen flow:
+- `landing → bananas`: User taps to start
+- `bananas → puzzle`: User taps next available banana
+- `puzzle → bananas`: User completes puzzle and taps "PEEL!"
+- `bananas → finale`: After all 6 puzzles completed
 
 ---
 
@@ -913,6 +909,32 @@ mcp__figma__download_figma_images(
 
 ---
 
+---
+
+## 12. Known Issues
+
+### BananaScreen Visibility Bug
+
+**Status**: Unresolved
+
+**Description**: After completing a puzzle and clicking "PEEL!", the transition back to BananaScreen results in an empty/invisible screen. The title text and all images fail to render.
+
+**Observed behavior**:
+- Landing screen works correctly
+- Initial BananaScreen renders correctly (user can tap banana)
+- Puzzle screen works correctly
+- After puzzle completion, clicking "PEEL!" transitions to BananaScreen but content is invisible
+
+**Attempted fixes**:
+- Simplified AnimatePresence with fade transitions
+- Removed all Framer Motion animations from screen transitions
+- Verified image paths return HTTP 200
+- Confirmed state management (`completedPuzzles`, `justCompletedPuzzle`) updates correctly
+
+**Root cause**: Unknown - requires further debugging
+
+---
+
 *Document generated with MCP Figma integration. Design tokens extracted from Figma file `Daily Design` (ye7XiHyMbTmwBDnO1K9lpQ).*
 
-*Last updated: Added Banana/Gift reveal system, all 6 puzzles, FinaleScreen with confetti, and screen transition animations.*
+*Last updated: Updated to uniform grid layout, 25% disabled opacity, simplified screen transitions, added known issues.*

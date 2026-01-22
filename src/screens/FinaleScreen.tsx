@@ -2,14 +2,14 @@ import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { colors, typography } from '@/styles/tokens'
 
-// Image positions from Figma (same as BananaScreen)
+// Image positions - uniform 160x160 grid layout
 const imageSlots = [
-  { id: 1, x: 183, y: 208, width: 197, height: 197 },
-  { id: 2, x: 216, y: 629, width: 186, height: 179 },
-  { id: 3, x: 52, y: 208, width: 134, height: 213 },
-  { id: 4, x: 192, y: 427, width: 196, height: 172 },
-  { id: 5, x: 28, y: 406, width: 200, height: 216 },
-  { id: 6, x: 40, y: 664, width: 130, height: 88 },
+  { id: 1, x: 40, y: 200, width: 160, height: 160 },   // top left
+  { id: 2, x: 215, y: 200, width: 160, height: 160 },  // top right
+  { id: 3, x: 40, y: 400, width: 160, height: 160 },   // middle left
+  { id: 4, x: 215, y: 400, width: 160, height: 160 },  // middle right
+  { id: 5, x: 40, y: 600, width: 160, height: 160 },   // bottom left
+  { id: 6, x: 215, y: 600, width: 160, height: 160 },  // bottom right
 ]
 
 // Gift images
